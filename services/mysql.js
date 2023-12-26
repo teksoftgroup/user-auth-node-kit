@@ -6,7 +6,7 @@ import {
   DB_PASS,
   DB_NAME,
   NODE_ENV,
-} from "../config/server.config";
+} from "../config/server.config.js";
 
 const db = mysql
   .createConnection({
