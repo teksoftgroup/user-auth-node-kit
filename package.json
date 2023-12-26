@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "repository": "",
+  "type": "module",
   "scripts": {
     "start": "npx nodemon server.js",
     "database:init": "env-cmd node database/initialize.js",
