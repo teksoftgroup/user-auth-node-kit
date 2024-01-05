@@ -4,9 +4,9 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 
 import { corsOptions } from "./config/cors.config.js";
-
-import { userRoutes } from "./routes/index.js";
+import { authRoutes, registerRoutes, userRoutes } from "./routes/root.js";
 import { notFound } from "./helpers/responseHelper.js";
+import { verifyJWT } from "./middleware/index.js";
 
 // Instantiate express
 const app = express();
@@ -24,7 +24,11 @@ app.use(express.json());
 // handle cookies in the request
 app.use(cookieParser());
 
+app.use("/auth", authRoutes);
+app.use("/register", registerRoutes);
+
 // routes
+app.use(verifyJWT);
 app.use("/api/users", userRoutes);
 
 app.all("*", (req, res) => {
