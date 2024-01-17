@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
+import { Token } from "../models/Token.js";
 import {
   ok,
   toHttpCookie,
@@ -50,10 +51,32 @@ export const handleRefreshToken = async (req, res) => {
   }
 
   const refreshToken = cookies.jwt;
-  const foundUser = await User.findByRefreshToken(refreshToken);
-  if (!foundUser) return sendForbidden(res);
+  res.clearCookie("jwt", { httpOnly: true, sameSite: "none", secure: true });
 
-  jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, (err, decoded) => {
+  const foundUser = await User.findByRefreshToken(refreshToken);
+
+  // detected refresh token re-use
+
+  if (!foundUser) {
+    jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, async (err, decoded) => {
+      if (err) return sendForbidden(res); //Forbidden
+      const hackedUser = await User.findByUsername(decoded.username);
+      const result = await Token.clearAll(hackedUser.id);
+      console.log("result = ", result);
+    });
+    return sendForbidden(res);
+  }
+
+  const newRefreshTokenArray = foundUser.refreshToken.filter(
+    (rt) => rt !== refreshToken
+  );
+
+  // evaluate jwt
+  jwt.verify(refreshToken, REFRESH_TOKEN_SECRET, async (err, decoded) => {
+    if (err) {
+      foundUser.refreshToken = [...newRefreshTokenArray];
+    }
+
     if (err || foundUser.username !== decoded.username) {
       return sendForbidden(res);
     }
@@ -68,6 +91,9 @@ export const handleRefreshToken = async (req, res) => {
       ACCESS_TOKEN_SECRET,
       { expiresIn: "5m" }
     );
+
+
+
     ok(res)({ accessToken });
   });
 };
