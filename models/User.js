@@ -133,7 +133,9 @@ export const User = {
    * @param {string} username
    * @returns a user credentials information
    */
-  findCredentials: async function (userName) {},
+  findCredentials: async function (userName) {
+    return this.findByUsername(userName);
+  },
   /**
    * This function will return a user given it's id
    * @param {number} id user Id
@@ -160,12 +162,26 @@ export const User = {
    * @param {object} data to update the user with
    * @returns the number of affecgted rows after the update
    */
-  updateOne: async function (id, data) {
+  updateOne: async function (id, data, omit = ["id", "userName", "createdAt"]) {
     const user = await this.findOne(id);
 
     if (!user) return 0;
 
-    const [fields, values] = [Object.keys(data), Object.values(data)];
+    // filter the data based on the omit list
+    const filteredData = Object.keys(data)
+      .filter((key) => !omit.includes(key))
+      .reduce((obj, key) => {
+        obj[key] = data[key];
+        return obj;
+      }, {});
+
+    //check to see if we have anything to filter
+    if (Object.keys(filteredData).length == 0) return 0;
+
+    const [fields, values] = [
+      Object.keys(filteredData),
+      Object.values(filteredData),
+    ];
     const sqlUpdateFragment = fields.map((field) => `${field} = ?`).join(",");
 
     const [result] = await database.pool.query(
